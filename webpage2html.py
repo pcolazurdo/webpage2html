@@ -50,7 +50,7 @@ def absurl(index, relpath=None, normpath=None):
             return index
 
 
-def get(index, relpath=None, verbose=True, usecache=True, verify=True, ignore_error=False, username=None, password=None):
+def get(index, relpath=None, verbose=True, usecache=True, verify=True, ignore_error=False, username=None, password=None, headers=None):
     global webpage2html_cache
     if index.startswith('http') or (relpath and relpath.startswith('http')):
         full_path = absurl(index, relpath)
@@ -66,9 +66,10 @@ def get(index, relpath=None, verbose=True, usecache=True, verify=True, ignore_er
                 if verbose:
                     log('[ CACHE HIT ] - %s' % full_path)
                 return webpage2html_cache[full_path], None
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0'
-        }
+        if not headers:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9'
+            }
 
         auth = None
         if username and password:
@@ -208,13 +209,13 @@ def handle_css_content(index, css, verbose=True):
 
 
 def generate(index, verbose=True, comment=True, keep_script=False, prettify=False, full_url=True, verify=True,
-             errorpage=False, username=None, password=None, **kwargs):
+             errorpage=False, username=None, password=None, headers=None, **kwargs):
     """
     given a index url such as http://www.google.com, http://custom.domain/index.html
     return generated single html
     """
     html_doc, extra_data = get(index, verbose=verbose, verify=verify, ignore_error=errorpage,
-                               username=username, password=password)
+                               username=username, password=password, headers=headers)
 
     if extra_data and extra_data.get('url'):
         index = extra_data['url']
@@ -373,6 +374,7 @@ def main():
     parser.add_argument('-o', '--output', help="save output to")
     parser.add_argument('-u', '--username', help="use HTTP basic auth with specified username")
     parser.add_argument('-p', '--password', help="use HTTP basic auth with specified password")
+    parser.add_argument('-a', '--agent', help="Pass user-agent header")
     parser.add_argument('--errorpage', action='store_true', help="crawl an error page")
     parser.add_argument("url", help="the website to store")
     args = parser.parse_args()
@@ -381,6 +383,8 @@ def main():
     args.keep_script = args.script
     args.verify = not args.insecure
     args.index = args.url
+    if args.agent:
+        args.headers = { 'User-Agent': args.agent }
     kwargs = vars(args)
 
     rs = generate(**kwargs)
